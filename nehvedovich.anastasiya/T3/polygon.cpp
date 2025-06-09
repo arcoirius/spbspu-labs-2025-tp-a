@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <iterator>
 #include <wrappers_io.hpp>
 
 bool nehvedovich::operator==(const Point &p1, const Point &p2)
@@ -17,7 +18,7 @@ std::istream &nehvedovich::operator>>(std::istream &in, Point &dest)
     return in;
   }
   Point temp;
-  in >> DelimiterIO{'('} >> temp.x >> DelimiterIO{';'} >> temp.y >> DelimiterIO{')'};
+  in >> DelimiterIO {'('} >> temp.x >> DelimiterIO {';'} >> temp.y >> DelimiterIO {')'};
   if (in)
   {
     dest = temp;
@@ -54,22 +55,23 @@ std::istream &nehvedovich::operator>>(std::istream &in, Polygon &dest)
   }
 
   size_t vertexCount;
-  if (!(in >> vertexCount) || vertexCount < 3)
+  in >> vertexCount;
+  if (!in || vertexCount < 3)
+  {
+    throw std::runtime_error("Not enough vertices.");
+  }
+
+  std::vector< Point > points(vertexCount, Point {});
+  using inputItPoint = std::istream_iterator< Point >;
+  std::copy_n(inputItPoint {in}, vertexCount, points.begin());
+  if (in && points.size() == vertexCount)
+  {
+    dest.points = std::move(points);
+  }
+  else
   {
     in.setstate(std::ios::failbit);
-    return in;
   }
-
-  dest.points.resize(vertexCount);
-  for (Point &p : dest.points)
-  {
-    if (!(in >> p))
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-  }
-
   return in;
 }
 
@@ -81,11 +83,9 @@ std::ostream &nehvedovich::operator<<(std::ostream &out, const Polygon &src)
     return out;
   }
 
+  using outputItPoint = std::ostream_iterator< Point >;
   out << src.points.size() << ' ';
-  for (const Point &p : src.points)
-  {
-    out << p << ' ';
-  }
+  std::copy_n(src.points.begin(), src.points.size(), outputItPoint {out, " "});
   return out;
 }
 

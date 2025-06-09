@@ -30,13 +30,26 @@ int main(int argc, char *argv[])
   using input_it_t = std::istream_iterator< Polygon >;
   while (!input.eof())
   {
-    std::copy(input_it_t(input), input_it_t(), std::back_inserter(polygons));
-    if (input.fail())
+    try
     {
-      input.clear();
-      input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+      std::copy(input_it_t(input), input_it_t(), std::back_inserter(polygons));
+      if (input.fail())
+      {
+        input.clear();
+        input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+      }
+    }
+    catch (const std::exception &)
+    {
+      if (input.fail())
+      {
+        input.clear();
+        input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+      }
     }
   }
+
+  std::copy(polygons.begin(), polygons.end(), std::ostream_iterator< Polygon > {std::cout, "\n"});
 
   std::map< std::string, std::function< void(std::istream &, std::ostream &) > > commands {
       {"AREA", std::bind(areaCommand, _1, _2, std::cref(polygons))},
