@@ -5,7 +5,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <string>
-#include "format_guard.hpp"
+#include <format_guard.hpp>
 
 namespace nehvedovich
 {

@@ -19,25 +19,22 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::vector< Polygon > polygons;
-
+  std::ifstream input(argv[1]);
+  if (!input)
   {
-    std::ifstream input(argv[1]);
-    if (!input)
-    {
-      std::cerr << "Error: cannot open file " << argv[1] << '\n';
-      return 1;
-    }
+    std::cerr << "Error: cannot open file " << argv[1] << '\n';
+    return 1;
+  }
 
-    using input_it_t = std::istream_iterator< Polygon >;
-    while (!input.eof())
+  std::vector< Polygon > polygons;
+  using input_it_t = std::istream_iterator< Polygon >;
+  while (!input.eof())
+  {
+    std::copy(input_it_t(input), input_it_t(), std::back_inserter(polygons));
+    if (input.fail())
     {
-      std::copy(input_it_t(input), input_it_t(), std::back_inserter(polygons));
-      if (input.fail())
-      {
-        input.clear();
-        input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      }
+      input.clear();
+      input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
     }
   }
 
@@ -49,30 +46,19 @@ int main(int argc, char *argv[])
       {"LESSAREA", std::bind(lessAreaCommand, _1, _2, std::cref(polygons))},
       {"INFRAME", std::bind(inFrameCommand, _1, _2, std::cref(polygons))}};
 
-  while (!std::cin.eof())
+  std::string cmd;
+  while (!(std::cin >> cmd).eof())
   {
-    std::string cmd;
-    std::cin >> cmd;
-    if (cmd.empty())
-    {
-      continue;
-    }
-
     try
     {
-      auto it = commands.find(cmd);
-      if (it != commands.end())
-      {
-        it->second(std::cin, std::cout);
-      }
-      else
-      {
-        throw std::runtime_error("Unknown command");
-      }
+      commands.at(cmd)(std::cin, std::cout);
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-      std::cin.clear();
+      if (std::cin.fail())
+      {
+        std::cin.clear();
+      }
       std::cin.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
       std::cout << "<INVALID COMMAND>\n";
     }
