@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <wrappers_io.hpp>
 
 bool nehvedovich::operator==(const Point &p1, const Point &p2)
 {
