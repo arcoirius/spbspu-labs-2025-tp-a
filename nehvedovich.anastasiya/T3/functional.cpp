@@ -48,33 +48,20 @@ namespace nehvedovich
     }
 
     std::vector< Point > rotated(candidate.points.size());
-    std::rotate_copy(
-      candidate.points.begin(),
-      candidate.points.begin() + shift,
-      candidate.points.end(),
-      rotated.begin()
-    );
+    std::rotate_copy(candidate.points.begin(), candidate.points.begin() + shift, candidate.points.end(),
+                     rotated.begin());
 
     int dx = reference.points[0].x - rotated[0].x;
     int dy = reference.points[0].y - rotated[0].y;
 
     std::vector< Point > translated(rotated.size());
-    std::transform(
-      rotated.begin(),
-      rotated.end(),
-      translated.begin(),
-      TranslatePoint(dx, dy)
-    );
+    std::transform(rotated.begin(), rotated.end(), translated.begin(), TranslatePoint(dx, dy));
 
     return std::equal(translated.begin(), translated.end(), reference.points.begin());
   }
 
   unsigned count_translation_congruent(const PolyVector &polygons, const Polygon &reference)
   {
-    return std::count_if(
-      polygons.begin(),
-      polygons.end(),
-      IsTranslationCongruent(reference)
-    );
+    return std::count_if(polygons.begin(), polygons.end(), IsTranslationCongruent(reference));
   }
 }

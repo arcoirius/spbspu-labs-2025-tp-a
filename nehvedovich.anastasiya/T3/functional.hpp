@@ -1,10 +1,10 @@
 #ifndef FUNCTIONAL_HPP
 #define FUNCTIONAL_HPP
 
-#include "polygon.hpp"
 #include <algorithm>
 #include <numeric>
 #include <string>
+#include "polygon.hpp"
 
 namespace nehvedovich
 {
@@ -34,7 +34,8 @@ namespace nehvedovich
   {
     AreaAccumulator(const std::string &p):
       param(p)
-    {}
+    {
+    }
 
     double operator()(double acc, const nehvedovich::Polygon &poly) const
     {
@@ -102,7 +103,8 @@ namespace nehvedovich
   {
     ShapesAccumulator(const std::string &p):
       param(p)
-    {}
+    {
+    }
 
     double operator()(double acc, const nehvedovich::Polygon &poly) const
     {
@@ -149,7 +151,8 @@ namespace nehvedovich
   {
     RmEchoPredicate(const Polygon &poly):
       ref(poly)
-    {}
+    {
+    }
 
     bool operator()(const Polygon &p1, const Polygon &p2)
     {
@@ -164,11 +167,12 @@ namespace nehvedovich
     TranslatePoint(int dx_, int dy_):
       dx(dx_),
       dy(dy_)
-    {}
+    {
+    }
 
     Point operator()(const Point &p) const
     {
-      return Point{p.x + dx, p.y + dy};
+      return Point {p.x + dx, p.y + dy};
     }
 
     int dx, dy;
@@ -181,7 +185,8 @@ namespace nehvedovich
     AnyOfShift(const PointVec &candidate_, const PointVec &reference_):
       candidate(candidate_),
       reference(reference_)
-    {}
+    {
+    }
 
     bool operator()(std::size_t shift) const
     {
@@ -205,7 +210,8 @@ namespace nehvedovich
   {
     IsTranslationCongruent(const Polygon &reference_):
       reference(reference_)
-    {}
+    {
+    }
 
     bool operator()(const Polygon &poly) const
     {
