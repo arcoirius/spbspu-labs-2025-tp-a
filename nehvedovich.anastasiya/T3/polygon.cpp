@@ -2,118 +2,142 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
-#include <iterator>
-#include <wrappers_io.hpp>
 
-bool nehvedovich::operator==(const Point &p1, const Point &p2)
+namespace nehvedovich
 {
-  return p1.x == p2.x && p1.y == p2.y;
-}
-
-std::istream &nehvedovich::operator>>(std::istream &in, Point &dest)
-{
-  std::istream::sentry s(in);
-  if (!s)
+  bool operator==(const Point &p1, const Point &p2)
   {
-    return in;
+    return p1.x == p2.x && p1.y == p2.y;
   }
-  Point temp;
-  in >> DelimiterIO {'('} >> temp.x >> DelimiterIO {';'} >> temp.y >> DelimiterIO {')'};
-  if (in)
+
+  std::istream &operator>>(std::istream &in, Point &dest)
   {
-    dest = temp;
-  }
-  return in;
-}
+    std::istream::sentry sentry(in);
+    if (!sentry)
+    {
+      return in;
+    }
 
-std::ostream &nehvedovich::operator<<(std::ostream &out, const Point &src)
-{
-  std::ostream::sentry sentry(out);
-  if (!sentry)
-  {
-    return out;
-  }
-  return out << '(' << src.x << ';' << src.y << ')';
-}
+    char ch;
+    if (!(in >> ch) || ch != '(')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> dest.x))
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> ch) || ch != ';')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> dest.y))
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> ch) || ch != ')')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
 
-bool nehvedovich::operator==(const Polygon &p1, const Polygon &p2)
-{
-  return p1.points == p2.points;
-}
-
-bool nehvedovich::operator!=(const Polygon &p1, const Polygon &p2)
-{
-  return !(p1 == p2);
-}
-
-std::istream &nehvedovich::operator>>(std::istream &in, Polygon &dest)
-{
-  std::istream::sentry sentry(in);
-  if (!sentry)
-  {
     return in;
   }
 
-  size_t vertexCount;
-  in >> vertexCount;
-  if (!in || vertexCount < 3)
+  std::ostream &operator<<(std::ostream &out, const Point &src)
   {
-    throw std::runtime_error("Not enough vertices.");
+    std::ostream::sentry sentry(out);
+    if (!sentry)
+    {
+      return out;
+    }
+    return out << '(' << src.x << ';' << src.y << ')';
   }
 
-  std::vector< Point > points(vertexCount, Point {});
-  using inputItPoint = std::istream_iterator< Point >;
-  std::copy_n(inputItPoint {in}, vertexCount, points.begin());
-  if (in && points.size() == vertexCount)
+  bool operator==(const Polygon &p1, const Polygon &p2)
   {
-    dest.points = std::move(points);
+    return p1.points == p2.points;
   }
-  else
-  {
-    in.setstate(std::ios::failbit);
-  }
-  return in;
-}
 
-std::ostream &nehvedovich::operator<<(std::ostream &out, const Polygon &src)
-{
-  std::ostream::sentry sentry(out);
-  if (!sentry)
+  bool operator!=(const Polygon &p1, const Polygon &p2)
   {
+    return !(p1 == p2);
+  }
+
+  std::istream &operator>>(std::istream &in, Polygon &dest)
+  {
+    std::istream::sentry sentry(in);
+    if (!sentry)
+    {
+      return in;
+    }
+
+    size_t vertexCount;
+    if (!(in >> vertexCount) || vertexCount < 3)
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    dest.points.resize(vertexCount);
+    for (Point &p : dest.points)
+    {
+      if (!(in >> p))
+      {
+        in.setstate(std::ios::failbit);
+        return in;
+      }
+    }
+
+    return in;
+  }
+
+  std::ostream &operator<<(std::ostream &out, const Polygon &src)
+  {
+    std::ostream::sentry sentry(out);
+    if (!sentry)
+    {
+      return out;
+    }
+
+    out << src.points.size() << ' ';
+    for (const Point &p : src.points)
+    {
+      out << p << ' ';
+    }
     return out;
   }
 
-  using outputItPoint = std::ostream_iterator< Point >;
-  out << src.points.size() << ' ';
-  std::copy_n(src.points.begin(), src.points.size(), outputItPoint {out, " "});
-  return out;
-}
-
-struct PolygonAreaAccumulator
-{
-  double operator()(double acc, const nehvedovich::Point &p1, const nehvedovich::Point &p2) const
+  struct PolygonAreaAccumulator
   {
-    return acc + (p1.x * p2.y - p2.x * p1.y);
-  }
-};
+    PolygonAreaAccumulator(const Polygon &p):
+      poly(p),
+      n(p.points.size())
+    {}
 
-double nehvedovich::calcPolygonArea(const Polygon &poly)
-{
-  if (poly.points.size() < 3)
+    double operator()(double acc, const Point &p1) const
+    {
+      size_t i = &p1 - &poly.points[0];
+      const nehvedovich::Point &p2 = poly.points[(i + 1) % n];
+      return acc + (p1.x * p2.y - p2.x * p1.y);
+    }
+    const Polygon &poly;
+    size_t n;
+  };
+
+  double calcPolygonArea(const Polygon &poly)
   {
-    return 0.0;
+    if (poly.points.size() < 3)
+    {
+      return 0.0;
+    }
+    double area = std::accumulate(poly.points.begin(), poly.points.end(), 0.0, PolygonAreaAccumulator(poly)) / 2.0;
+
+    return std::abs(area);
   }
 
-  const auto &points = poly.points;
-  double sum =
-      std::inner_product(points.begin(), std::prev(points.end()), std::next(points.begin()), 0.0, std::plus<>(),
-                         [](const Point &a, const Point &b)
-                         {
-                           return a.x * b.y - b.x * a.y;
-                         });
-
-  sum += points.back().x * points.front().y - points.front().x * points.back().y;
-
-  return std::abs(sum) / 2.0;
 }
-

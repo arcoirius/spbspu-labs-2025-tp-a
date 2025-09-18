@@ -1,3 +1,5 @@
+#include "polygon.hpp"
+#include "commands.hpp"
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -5,77 +7,117 @@
 #include <limits>
 #include <map>
 #include <functional>
-#include "polygon.hpp"
-#include "commands.hpp"
 
-int main(int argc, char *argv[])
+template < typename Fn >
+struct BindPolygons
 {
-  using namespace nehvedovich;
-  using namespace std::placeholders;
+  using FnType = Fn;
 
-  if (argc != 2)
+  BindPolygons(FnType f, const std::vector<nehvedovich::Polygon> &polys):
+    fn(f),
+    polygons(polys)
+  {}
+
+  void operator()(std::istream &in, std::ostream &out) const
   {
-    std::cerr << "Usage: " << argv[0] << " <input_file>\n";
-    return 1;
+    fn(in, out, polygons);
   }
 
-  std::ifstream input(argv[1]);
-  if (!input)
+  FnType fn;
+  const std::vector<nehvedovich::Polygon> &polygons;
+
+};
+
+template < typename Fn >
+struct BindPolygonsMut
+{
+  using FnType = Fn;
+
+  BindPolygonsMut(FnType f, std::vector<nehvedovich::Polygon> &polys):
+    fn(f),
+    polygons(polys)
+  {}
+
+  void operator()(std::istream &in, std::ostream &out) const
   {
-    std::cerr << "Error: cannot open file " << argv[1] << '\n';
-    return 1;
+    fn(in, out, polygons);
   }
 
-  std::vector< Polygon > polygons;
-  using input_it_t = std::istream_iterator< Polygon >;
-  while (!input.eof())
-  {
-    try
-    {
-      std::copy(input_it_t(input), input_it_t(), std::back_inserter(polygons));
-      if (input.fail())
-      {
-        input.clear();
-        input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      }
-    }
-    catch (const std::exception &)
-    {
-      if (input.fail())
-      {
-        input.clear();
-        input.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      }
-    }
-  }
+  FnType fn;
+  std::vector<nehvedovich::Polygon> &polygons;
+};
 
-  std::copy(polygons.begin(), polygons.end(), std::ostream_iterator< Polygon > {std::cout, "\n"});
 
-  std::map< std::string, std::function< void(std::istream &, std::ostream &) > > commands {
-      {"AREA", std::bind(areaCommand, _1, _2, std::cref(polygons))},
-      {"MAX", std::bind(maxCommand, _1, _2, std::cref(polygons))},
-      {"MIN", std::bind(minCommand, _1, _2, std::cref(polygons))},
-      {"COUNT", std::bind(countCommand, _1, _2, std::cref(polygons))},
-      {"LESSAREA", std::bind(lessAreaCommand, _1, _2, std::cref(polygons))},
-      {"INFRAME", std::bind(inFrameCommand, _1, _2, std::cref(polygons))}};
+int main(int argc, char* argv[])
+{
+    using namespace nehvedovich;
 
-  std::string cmd;
-  while (!(std::cin >> cmd).eof())
-  {
-    try
+    if (argc != 2)
     {
-      commands.at(cmd)(std::cin, std::cout);
+        std::cerr << "Usage: " << argv[0] << " <input_file>\n";
+        return 1;
     }
-    catch (const std::exception &e)
-    {
-      if (std::cin.fail())
-      {
-        std::cin.clear();
-      }
-      std::cin.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
-      std::cout << "<INVALID COMMAND>\n";
-    }
-  }
 
-  return 0;
+    std::vector<Polygon> polygons;
+    
+    {
+        std::ifstream input(argv[1]);
+        if (!input)
+        {
+            std::cerr << "Error: cannot open file " << argv[1] << '\n';
+            return 1;
+        }
+
+        using input_it_t = std::istream_iterator<Polygon>;
+        while (!input.eof())
+        {
+            std::copy(input_it_t(input), input_it_t(), std::back_inserter(polygons));
+            if (input.fail())
+            {
+                input.clear();
+                input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+        }
+    }
+
+    std::map<std::string, std::function<void(std::istream&, std::ostream&)>> commands
+{
+  { "AREA",     BindPolygons<decltype(&nehvedovich::areaCommand)>(&nehvedovich::areaCommand, polygons) },
+  { "MAX",      BindPolygons<decltype(&nehvedovich::maxCommand)>(&nehvedovich::maxCommand, polygons) },
+  { "MIN",      BindPolygons<decltype(&nehvedovich::minCommand)>(&nehvedovich::minCommand, polygons) },
+  { "COUNT",    BindPolygons<decltype(&nehvedovich::countCommand)>(&nehvedovich::countCommand, polygons) },
+  { "LESSAREA", BindPolygons<decltype(&nehvedovich::lessAreaCommand)>(&nehvedovich::lessAreaCommand, polygons) },
+  { "INFRAME",  BindPolygons<decltype(&nehvedovich::inFrameCommand)>(&nehvedovich::inFrameCommand, polygons) },
+  { "SAME",     BindPolygonsMut<decltype(&nehvedovich::sameCommand)>(&nehvedovich::sameCommand, polygons) }
+};
+
+    
+
+    while (!std::cin.eof())
+    {
+        std::string cmd;
+        std::cin >> cmd;
+        if (cmd.empty()) continue;
+        
+        try
+        {
+            auto it = commands.find(cmd);
+            if (it != commands.end())
+            {
+                it->second(std::cin, std::cout);
+            }
+            else
+            {
+                throw std::runtime_error("Unknown command");
+            }
+        }
+        catch (...)
+        {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "<INVALID COMMAND>\n";
+        }
+    }
+
+    return 0;
 }

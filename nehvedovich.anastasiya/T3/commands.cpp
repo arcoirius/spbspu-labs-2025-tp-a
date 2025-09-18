@@ -2,29 +2,19 @@
 #include <algorithm>
 #include <iomanip>
 #include <limits>
+#include <functional>
 #include <numeric>
 #include <stdexcept>
+#include "format_guard.hpp"
+#include "functional.hpp"
 #include <string>
-#include <format_guard.hpp>
 
 namespace nehvedovich
 {
-
   double getArea(const Polygon &poly)
   {
-    if (poly.points.size() < 3)
-    {
-      return 0.0;
-    }
-    double sum = 0.0;
-    for (size_t i = 0; i < poly.points.size(); ++i)
-    {
-      const Point &p1 = poly.points[i];
-      const Point &p2 = poly.points[(i + 1) % poly.points.size()];
-      sum += (p1.x * p2.y - p2.x * p1.y);
-    }
-    return std::abs(sum) / 2.0;
-  }
+    return calcPolygonArea(poly);
+  }  
 
   struct AreaFilter
   {
@@ -43,6 +33,29 @@ namespace nehvedovich
     }
   };
 
+  struct SumAllAreas
+{
+  double operator()(double acc, const Polygon &poly) const
+  {
+    return acc + getArea(poly);
+  }
+};
+
+struct SumAreasIfParam
+{
+  explicit SumAreasIfParam(const std::string &p):
+    param(p)
+  {}
+
+  double operator()(double acc, const Polygon &poly) const
+  {
+    AreaFilter filter;
+    return filter(poly, param) ? (acc + getArea(poly)) : acc;
+  }
+
+  std::string param;
+};
+
   struct VertexCountFilter
   {
     bool operator()(const Polygon &poly, const std::string &param) const
@@ -60,43 +73,35 @@ namespace nehvedovich
     }
   };
 
-  struct BoundingBox
+  struct CountByParam
+{
+  explicit CountByParam(const std::string &p):
+    param(p)
+  {}
+
+  bool operator()(const Polygon &poly) const
   {
-    int minX, maxX, minY, maxY;
+    VertexCountFilter filter;
+    return filter(poly, param);
+  }
 
-    BoundingBox(const std::vector< Polygon > &polygons)
-    {
-      if (polygons.empty())
-      {
-        throw std::runtime_error("No polygons to calculate bounding box");
-      }
-      minX = maxX = polygons[0].points[0].x;
-      minY = maxY = polygons[0].points[0].y;
+  std::string param;
+};
 
-      for (const auto &poly : polygons)
-      {
-        for (const auto &point : poly.points)
-        {
-          minX = std::min(minX, point.x);
-          maxX = std::max(maxX, point.x);
-          minY = std::min(minY, point.y);
-          maxY = std::max(maxY, point.y);
-        }
-      }
-    }
+struct LessThanArea
+{
+  explicit LessThanArea(double a):
+    area(a)
+  {}
 
-    bool contains(const Polygon &poly) const
-    {
-      for (const auto &point : poly.points)
-      {
-        if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY)
-        {
-          return false;
-        }
-      }
-      return true;
-    }
-  };
+  bool operator()(const Polygon &p) const
+  {
+    return getArea(p) < area;
+  }
+
+  double area;
+};
+
 
 }
 
@@ -111,21 +116,17 @@ void nehvedovich::areaCommand(std::istream &in, std::ostream &out, const std::ve
     {
       throw std::runtime_error("No polygons for MEAN calculation");
     }
-    double total = std::accumulate(polygons.begin(), polygons.end(), 0.0,
-                                   [](double sum, const nehvedovich::Polygon &poly)
-                                   {
-                                     return sum + getArea(poly);
-                                   });
-    out << std::fixed << std::setprecision(1) << (total / polygons.size()) << '\n';
+    const double total = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAllAreas());
+out << std::fixed << std::setprecision(1) << (total / polygons.size()) << '\n';
     return;
   }
+  const double sum = std::accumulate(
+    polygons.begin(),
+    polygons.end(),
+    0.0,
+    SumAreasIfParam(param)
+  );
 
-  AreaFilter filter;
-  double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
-                               [&filter, &param](double sum, const nehvedovich::Polygon &poly)
-                               {
-                                 return filter(poly, param) ? sum + getArea(poly) : sum;
-                               });
   out << std::fixed << std::setprecision(1) << sum << '\n';
 }
 
@@ -141,20 +142,13 @@ void nehvedovich::maxCommand(std::istream &in, std::ostream &out, const std::vec
 
   if (param == "AREA")
   {
-    auto it = std::max_element(polygons.begin(), polygons.end(),
-                               [](const nehvedovich::Polygon &a, const nehvedovich::Polygon &b)
-                               {
-                                 return getArea(a) < getArea(b);
-                               });
+    auto it = std::max_element(polygons.begin(), polygons.end(), AreaComparator());
     out << std::fixed << std::setprecision(1) << getArea(*it) << '\n';
   }
   else if (param == "VERTEXES")
   {
-    auto it = std::max_element(polygons.begin(), polygons.end(),
-                               [](const nehvedovich::Polygon &a, const nehvedovich::Polygon &b)
-                               {
-                                 return a.points.size() < b.points.size();
-                               });
+    auto it = std::max_element(polygons.begin(), polygons.end(), VerticesComparator());
+
     out << it->points.size() << '\n';
   }
   else
@@ -183,20 +177,12 @@ void nehvedovich::minCommand(std::istream &in, std::ostream &out, const std::vec
 
   if (param == "AREA")
   {
-    auto it = std::min_element(polygons.begin(), polygons.end(),
-                               [](const nehvedovich::Polygon &a, const nehvedovich::Polygon &b)
-                               {
-                                 return getArea(a) < getArea(b);
-                               });
+    auto it = std::min_element(polygons.begin(), polygons.end(), AreaComparator());
     out << std::fixed << std::setprecision(1) << getArea(*it) << '\n';
   }
   else if (param == "VERTEXES")
   {
-    auto it = std::min_element(polygons.begin(), polygons.end(),
-                               [](const nehvedovich::Polygon &a, const nehvedovich::Polygon &b)
-                               {
-                                 return a.points.size() < b.points.size();
-                               });
+    auto it = std::min_element(polygons.begin(), polygons.end(), VerticesComparator());
     out << it->points.size() << '\n';
   }
   else
@@ -208,36 +194,34 @@ void nehvedovich::minCommand(std::istream &in, std::ostream &out, const std::vec
 void nehvedovich::countCommand(std::istream &in, std::ostream &out, const std::vector< nehvedovich::Polygon > &polygons)
 {
   std::string param;
-  in >> param;
+in >> param;
+std::size_t count = std::count_if(polygons.begin(), polygons.end(), CountByParam(param));
+out << count << '\n';
 
-  VertexCountFilter filter;
-  size_t count = std::count_if(polygons.begin(), polygons.end(),
-                               [&filter, &param](const Polygon &poly)
-                               {
-                                 return filter(poly, param);
-                               });
-  out << count << '\n';
 }
+
 
 void nehvedovich::lessAreaCommand(std::istream &in,
                                   std::ostream &out,
                                   const std::vector< nehvedovich::Polygon > &polygons)
-{
-  nehvedovich::Polygon poly;
-  in >> poly;
-  if (in.fail())
-  {
-    throw std::runtime_error("Invalid polygon for LESSAREA");
-  }
-
-  double area = getArea(poly);
-  size_t count = std::count_if(polygons.begin(), polygons.end(),
-                               [area](const nehvedovich::Polygon &p)
-                               {
-                                 return getArea(p) < area;
-                               });
-  out << count << '\n';
-}
+                                  {
+                                    nehvedovich::Polygon poly;
+                                    in >> poly;
+                                    if (in.fail())
+                                    {
+                                      throw std::runtime_error("Invalid polygon for LESSAREA");
+                                    }
+                                  
+                                    const double area = getArea(poly);
+                                    const std::size_t count = std::count_if(
+                                        polygons.begin(),
+                                        polygons.end(),
+                                        LessThanArea(area)
+                                    );
+                                  
+                                    out << count << '\n';
+                                  }
+                                  
 
 void nehvedovich::inFrameCommand(std::istream &in,
                                  std::ostream &out,
@@ -257,4 +241,35 @@ void nehvedovich::inFrameCommand(std::istream &in,
 
   BoundingBox box(polygons);
   out << (box.contains(poly) ? "<TRUE>\n" : "<FALSE>\n");
+}
+
+void nehvedovich::sameCommand(std::istream &in, std::ostream &out, std::vector< Polygon > &polygons)
+{
+  std::istream::sentry sentry(in);
+  if (!sentry)
+  {
+    return;
+  }
+  Polygon reference;
+  if (!(in >> reference))
+  {
+    out << "<INVALID COMMAND>\n";
+    return;
+  }
+  try
+  {
+    BoundingBox bbox(polygons);
+    if (bbox.contains(reference))
+    {
+      out << "<TRUE>\n";
+    }
+    else
+    {
+      out << "<FALSE>\n";
+    }
+  }
+  catch (const std::exception &)
+  {
+    out << "<INVALID COMMAND>\n";
+  }
 }
