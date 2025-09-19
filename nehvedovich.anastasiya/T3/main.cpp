@@ -13,8 +13,7 @@ struct BindPolygons
 {
   using FnType = Fn;
 
-  BindPolygons(FnType f, const std::vector< nehvedovich::Polygon > &polys):
-    fn(f),
+  BindPolygons(FnType f, const std::vector< nehvedovich::Polygon > &polys):` fn(f),
     polygons(polys)
   {}
 
