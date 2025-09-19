@@ -27,23 +27,25 @@ struct BindPolygons
 };
 
 template < typename Fn >
-struct BindPolygonsMut
+struct BindPolygons
 {
-  using FnType = Fn;
+  typedef Fn FnType;
 
-  BindPolygonsMut(FnType f, std::vector< nehvedovich::Polygon > &polys):
-    fn(f),
-    polygons(polys)
+  BindPolygons(FnType f, const std::vector< nehvedovich::Polygon >& polys)
+    : fn(f),
+      polygons(polys)
   {}
 
-  void operator()(std::istream &in, std::ostream &out) const
+  void operator()(std::istream& in, std::ostream& out) const
   {
     fn(in, out, polygons);
   }
 
+private:
   FnType fn;
-  std::vector< nehvedovich::Polygon > &polygons;
+  const std::vector< nehvedovich::Polygon >& polygons;
 };
+
 
 int main(int argc, char *argv[])
 {
