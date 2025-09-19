@@ -14,7 +14,7 @@ namespace nehvedovich
   double getArea(const Polygon &poly)
   {
     return calcPolygonArea(poly);
-  }  
+  }
 
   struct AreaFilter
   {
@@ -34,27 +34,27 @@ namespace nehvedovich
   };
 
   struct SumAllAreas
-{
-  double operator()(double acc, const Polygon &poly) const
   {
-    return acc + getArea(poly);
-  }
-};
+    double operator()(double acc, const Polygon &poly) const
+    {
+      return acc + getArea(poly);
+    }
+  };
 
-struct SumAreasIfParam
-{
-  explicit SumAreasIfParam(const std::string &p):
-    param(p)
-  {}
-
-  double operator()(double acc, const Polygon &poly) const
+  struct SumAreasIfParam
   {
-    AreaFilter filter;
-    return filter(poly, param) ? (acc + getArea(poly)) : acc;
-  }
+    explicit SumAreasIfParam(const std::string &p):
+      param(p)
+    {}
 
-  std::string param;
-};
+    double operator()(double acc, const Polygon &poly) const
+    {
+      AreaFilter filter;
+      return filter(poly, param) ? (acc + getArea(poly)) : acc;
+    }
+
+    std::string param;
+  };
 
   struct VertexCountFilter
   {
@@ -74,34 +74,33 @@ struct SumAreasIfParam
   };
 
   struct CountByParam
-{
-  explicit CountByParam(const std::string &p):
-    param(p)
-  {}
-
-  bool operator()(const Polygon &poly) const
   {
-    VertexCountFilter filter;
-    return filter(poly, param);
-  }
+    explicit CountByParam(const std::string &p):
+      param(p)
+    {}
 
-  std::string param;
-};
+    bool operator()(const Polygon &poly) const
+    {
+      VertexCountFilter filter;
+      return filter(poly, param);
+    }
 
-struct LessThanArea
-{
-  explicit LessThanArea(double a):
-    area(a)
-  {}
+    std::string param;
+  };
 
-  bool operator()(const Polygon &p) const
+  struct LessThanArea
   {
-    return getArea(p) < area;
-  }
+    explicit LessThanArea(double a):
+      area(a)
+    {}
 
-  double area;
-};
+    bool operator()(const Polygon &p) const
+    {
+      return getArea(p) < area;
+    }
 
+    double area;
+  };
 
 }
 
@@ -117,15 +116,10 @@ void nehvedovich::areaCommand(std::istream &in, std::ostream &out, const std::ve
       throw std::runtime_error("No polygons for MEAN calculation");
     }
     const double total = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAllAreas());
-out << std::fixed << std::setprecision(1) << (total / polygons.size()) << '\n';
+    out << std::fixed << std::setprecision(1) << (total / polygons.size()) << '\n';
     return;
   }
-  const double sum = std::accumulate(
-    polygons.begin(),
-    polygons.end(),
-    0.0,
-    SumAreasIfParam(param)
-  );
+  const double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAreasIfParam(param));
 
   out << std::fixed << std::setprecision(1) << sum << '\n';
 }
@@ -194,34 +188,27 @@ void nehvedovich::minCommand(std::istream &in, std::ostream &out, const std::vec
 void nehvedovich::countCommand(std::istream &in, std::ostream &out, const std::vector< nehvedovich::Polygon > &polygons)
 {
   std::string param;
-in >> param;
-std::size_t count = std::count_if(polygons.begin(), polygons.end(), CountByParam(param));
-out << count << '\n';
-
+  in >> param;
+  std::size_t count = std::count_if(polygons.begin(), polygons.end(), CountByParam(param));
+  out << count << '\n';
 }
-
 
 void nehvedovich::lessAreaCommand(std::istream &in,
                                   std::ostream &out,
                                   const std::vector< nehvedovich::Polygon > &polygons)
-                                  {
-                                    nehvedovich::Polygon poly;
-                                    in >> poly;
-                                    if (in.fail())
-                                    {
-                                      throw std::runtime_error("Invalid polygon for LESSAREA");
-                                    }
-                                  
-                                    const double area = getArea(poly);
-                                    const std::size_t count = std::count_if(
-                                        polygons.begin(),
-                                        polygons.end(),
-                                        LessThanArea(area)
-                                    );
-                                  
-                                    out << count << '\n';
-                                  }
-                                  
+{
+  nehvedovich::Polygon poly;
+  in >> poly;
+  if (in.fail())
+  {
+    throw std::runtime_error("Invalid polygon for LESSAREA");
+  }
+
+  const double area = getArea(poly);
+  const std::size_t count = std::count_if(polygons.begin(), polygons.end(), LessThanArea(area));
+
+  out << count << '\n';
+}
 
 void nehvedovich::inFrameCommand(std::istream &in,
                                  std::ostream &out,

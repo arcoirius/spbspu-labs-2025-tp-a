@@ -168,7 +168,7 @@ namespace nehvedovich
 
     Point operator()(const Point &p) const
     {
-      return Point{p.x + dx, p.y + dy};
+      return Point {p.x + dx, p.y + dy};
     }
 
     int dx, dy;
@@ -234,118 +234,122 @@ namespace nehvedovich
     const Polygon &reference;
   };
 
-  struct AccumulatePoints 
+  struct AccumulatePoints
   {
-    std::vector<Point> operator()(std::vector<Point> acc, const Polygon& poly) const;
-};
+    std::vector< Point > operator()(std::vector< Point > acc, const Polygon &poly) const;
+  };
 
-struct CompareX {
-    bool operator()(const Point& a, const Point& b) const;
-};
+  struct CompareX
+  {
+    bool operator()(const Point &a, const Point &b) const;
+  };
 
-struct CompareY {
-    bool operator()(const Point& a, const Point& b) const;
-};
+  struct CompareY
+  {
+    bool operator()(const Point &a, const Point &b) const;
+  };
 
-struct BoundingBox {
+  struct BoundingBox
+  {
     int minX, maxX, minY, maxY;
-    BoundingBox(const std::vector<Polygon>& polygons);
-    
-    struct ContainsPoint {
-        int minX, maxX, minY, maxY;
-        ContainsPoint(int minX, int maxX, int minY, int maxY);
-        bool operator()(const Point& p) const;
+    BoundingBox(const std::vector< Polygon > &polygons);
+
+    struct ContainsPoint
+    {
+      int minX, maxX, minY, maxY;
+      ContainsPoint(int minX, int maxX, int minY, int maxY);
+      bool operator()(const Point &p) const;
     };
-    
-    bool contains(const Polygon& poly) const;
-};
 
-struct PlusD
-{
-  double operator()(double a, double b) const
+    bool contains(const Polygon &poly) const;
+  };
+
+  struct PlusD
   {
-    return a + b;
-  }
-};
+    double operator()(double a, double b) const
+    {
+      return a + b;
+    }
+  };
 
-struct MinusD
-{
-  double operator()(double a, double b) const
+  struct MinusD
   {
-    return a - b;
-  }
-};
+    double operator()(double a, double b) const
+    {
+      return a - b;
+    }
+  };
 
-struct MultD
-{
-  double operator()(double a, double b) const
+  struct MultD
   {
-    return a * b;
-  }
-};
+    double operator()(double a, double b) const
+    {
+      return a * b;
+    }
+  };
 
-template < typename T >
-struct BetweenClosed
-{
-  T lo;
-  T hi;
-
-  explicit BetweenClosed(const T & lo_, const T & hi_):
-    lo(lo_),
-    hi(hi_)
-  {}
-
-  bool operator()(const T & v) const
+  template < typename T >
+  struct BetweenClosed
   {
-    return !(v < lo) && !(hi < v);
-  }
-};
+    T lo;
+    T hi;
 
-template < typename T >
-struct LessThan
-{
-  T bound;
+    explicit BetweenClosed(const T &lo_, const T &hi_):
+      lo(lo_),
+      hi(hi_)
+    {}
 
-  explicit LessThan(const T & b):
-    bound(b)
-  {}
+    bool operator()(const T &v) const
+    {
+      return !(v < lo) && !(hi < v);
+    }
+  };
 
-  bool operator()(const T & v) const
+  template < typename T >
+  struct LessThan
   {
-    return v < bound;
-  }
-};
+    T bound;
 
-template < typename T >
-struct EqualTo
-{
-  T ref;
+    explicit LessThan(const T &b):
+      bound(b)
+    {}
 
-  explicit EqualTo(const T & r):
-    ref(r)
-  {}
+    bool operator()(const T &v) const
+    {
+      return v < bound;
+    }
+  };
 
-  bool operator()(const T & v) const
+  template < typename T >
+  struct EqualTo
   {
-    return v == ref;
-  }
-};
+    T ref;
 
-struct Affine
-{
-  double a;
-  double b;
+    explicit EqualTo(const T &r):
+      ref(r)
+    {}
 
-  Affine(double a_, double b_):
-    a(a_),
-    b(b_)
-  {}
+    bool operator()(const T &v) const
+    {
+      return v == ref;
+    }
+  };
 
-  double operator()(double x) const
+  struct Affine
   {
-    return a * x + b;
-  }
-};
+    double a;
+    double b;
+
+    Affine(double a_, double b_):
+      a(a_),
+      b(b_)
+    {}
+
+    double operator()(double x) const
+    {
+      return a * x + b;
+    }
+  };
 
 }
 
