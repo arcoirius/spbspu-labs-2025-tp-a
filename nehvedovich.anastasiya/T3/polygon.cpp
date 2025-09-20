@@ -6,13 +6,6 @@
 
 namespace nehvedovich
 {
-  struct PointLess
-  {
-    bool operator()(const Point &a, const Point &b) const
-    {
-      return (a.x < b.x) || (a.x == b.x && a.y < b.y);
-    }
-  };
 
   std::istream &operator>>(std::istream &in, Point &pt)
   {
