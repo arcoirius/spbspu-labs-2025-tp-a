@@ -1,9 +1,9 @@
 #include "polygon.hpp"
 #include <algorithm>
 #include <iterator>
-#include <sstream>
 #include <numeric>
 #include <cmath>
+#include <sstream>
 
 namespace nehvedovich
 {
@@ -89,54 +89,6 @@ namespace nehvedovich
   bool operator==(const Point &a, const Point &b)
   {
     return a.x == b.x && a.y == b.y;
-  }
-
-  std::istream &operator>>(std::istream &in, Polygon &dest)
-  {
-    std::istream::sentry s(in);
-    if (!s)
-    {
-      return in;
-    }
-
-    std::size_t n = 0;
-    if (!(in >> n))
-    {
-      return in;
-    }
-    if (n < 3)
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    std::vector< Point > pts;
-    pts.reserve(n);
-    std::istream_iterator< Point > it(in);
-    std::copy_n(it, n, std::back_inserter(pts));
-
-    if (in.fail())
-    {
-      return in;
-    }
-
-    std::vector< Point > tmp(pts);
-    std::sort(tmp.begin(), tmp.end(), PointLess());
-    struct PointEq
-    {
-      bool operator()(const Point &a, const Point &b) const
-      {
-        return a.x == b.x && a.y == b.y;
-      }
-    };
-    if (std::adjacent_find(tmp.begin(), tmp.end(), PointEq()) != tmp.end())
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    dest.points.swap(pts);
-    return in;
   }
 
   std::ostream &operator<<(std::ostream &out, const Polygon &src)
