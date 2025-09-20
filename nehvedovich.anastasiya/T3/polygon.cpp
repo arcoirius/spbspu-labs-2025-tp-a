@@ -1,13 +1,14 @@
 #include "polygon.hpp"
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 #include <numeric>
 #include <cmath>
 
 namespace nehvedovich
 {
 
-  std::istream &operator>>(std::istream &in, Point &pt)
+  std::istream &operator>>(std::istream &in, Polygon &dest)
   {
     std::istream::sentry s(in);
     if (!s)
@@ -15,35 +16,63 @@ namespace nehvedovich
       return in;
     }
 
-    char lp = 0, sc = 0, rp = 0;
-    int x = 0, y = 0;
-
-    if (!(in >> lp) || lp != '(')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> x))
+    std::size_t n = 0;
+    if (!(in >> n))
     {
       return in;
     }
-    if (!(in >> sc) || sc != ';')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> y))
-    {
-      return in;
-    }
-    if (!(in >> rp) || rp != ')')
+    if (n < 3)
     {
       in.setstate(std::ios::failbit);
       return in;
     }
 
-    pt.x = x;
-    pt.y = y;
+    char c = static_cast< char >(in.peek());
+    if (c == '\n')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    std::string line;
+    std::getline(in, line);
+    std::istringstream ls(line);
+
+    std::vector< Point > pts;
+    pts.reserve(n);
+    std::istream_iterator< Point > it(ls);
+    std::copy_n(it, n, std::back_inserter(pts));
+
+    if (ls.fail())
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    std::string tail;
+    std::getline(ls, tail);
+    if (tail.find_first_not_of(" \t\r") != std::string::npos)
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    std::vector< Point > tmp(pts);
+    std::sort(tmp.begin(), tmp.end(), PointLess());
+    struct PointEq
+    {
+      bool operator()(const Point &a, const Point &b) const
+      {
+        return a.x == b.x && a.y == b.y;
+      }
+    };
+    if (std::adjacent_find(tmp.begin(), tmp.end(), PointEq()) != tmp.end())
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    dest.points.swap(pts);
     return in;
   }
 
