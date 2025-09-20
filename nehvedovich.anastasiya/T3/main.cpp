@@ -27,6 +27,26 @@ struct BindPolygons
   const std::vector< nehvedovich::Polygon >& polygons;
 };
 
+template < typename Fn >
+struct BindPolygonsMut
+{
+  typedef Fn FnType;
+
+  BindPolygonsMut(FnType f, std::vector< nehvedovich::Polygon >& polys)
+    : fn(f),
+      polygons(polys)
+  {}
+
+  void operator()(std::istream& in, std::ostream& out) const
+  {
+    fn(in, out, polygons);
+  }
+
+  FnType fn;
+  std::vector< nehvedovich::Polygon >& polygons;
+};
+
+
 int main(int argc, char *argv[])
 {
   using namespace nehvedovich;
