@@ -91,6 +91,46 @@ namespace nehvedovich
     return a.x == b.x && a.y == b.y;
   }
 
+  std::istream &operator>>(std::istream &in, Point &pt)
+  {
+    std::istream::sentry s(in);
+    if (!s)
+    {
+      return in;
+    }
+
+    char lp = 0, sc = 0, rp = 0;
+    int x = 0, y = 0;
+
+    if (!(in >> lp) || lp != '(')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> x))
+    {
+      return in;
+    }
+    if (!(in >> sc) || sc != ';')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> y))
+    {
+      return in;
+    }
+    if (!(in >> rp) || rp != ')')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    pt.x = x;
+    pt.y = y;
+    return in;
+  }
+
   std::ostream &operator<<(std::ostream &out, const Polygon &src)
   {
     std::ostream::sentry s(out);
