@@ -10,41 +10,45 @@ namespace nehvedovich
     return p1.x == p2.x && p1.y == p2.y;
   }
 
-  std::istream &operator>>(std::istream &in, Point &dest)
+  std::istream &operator>>(std::istream &in, Polygon &dest)
   {
-    std::istream::sentry sentry(in);
-    if (!sentry)
+    std::istream::sentry s(in);
+    if (!s)
     {
       return in;
     }
 
-    char ch;
-    if (!(in >> ch) || ch != '(')
+    std::size_t n = 0;
+    if (!(in >> n))
     {
-      in.setstate(std::ios::failbit);
       return in;
     }
-    if (!(in >> dest.x))
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> ch) || ch != ';')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> dest.y))
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> ch) || ch != ')')
+
+    if (n < 3)
     {
       in.setstate(std::ios::failbit);
       return in;
     }
 
+    std::vector< Point > pts;
+    pts.reserve(n);
+    std::istream_iterator< Point > it(in);
+    std::copy_n(it, n, std::back_inserter(pts));
+
+    if (in.fail())
+    {
+      return in;
+    }
+
+    std::vector< Point > tmp(pts);
+    std::sort(tmp.begin(), tmp.end(), PointLess());
+    if (std::adjacent_find(tmp.begin(), tmp.end(), std::equal_to< Point >()) != tmp.end())
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    dest.points.swap(pts);
     return in;
   }
 

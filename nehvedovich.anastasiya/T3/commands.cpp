@@ -232,31 +232,21 @@ void nehvedovich::inFrameCommand(std::istream &in,
 
 void nehvedovich::sameCommand(std::istream &in, std::ostream &out, std::vector< Polygon > &polygons)
 {
-  std::istream::sentry sentry(in);
-  if (!sentry)
+  std::istream::sentry s(in);
+  if (!s)
   {
     return;
   }
-  Polygon reference;
-  if (!(in >> reference))
+
+  Polygon pattern;
+  if (!(in >> pattern))
   {
     out << "<INVALID COMMAND>\n";
     return;
   }
-  try
-  {
-    BoundingBox bbox(polygons);
-    if (bbox.contains(reference))
-    {
-      out << "<TRUE>\n";
-    }
-    else
-    {
-      out << "<FALSE>\n";
-    }
-  }
-  catch (const std::exception &)
-  {
-    out << "<INVALID COMMAND>\n";
-  }
+
+  const SameByTranslation pred(pattern);
+  const std::size_t cnt = static_cast< std::size_t >(std::count_if(polygons.begin(), polygons.end(), pred));
+
+  out << cnt << "\n";
 }

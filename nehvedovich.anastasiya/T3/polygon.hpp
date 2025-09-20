@@ -26,6 +26,15 @@ namespace nehvedovich
   std::ostream &operator<<(std::ostream &out, const Polygon &src);
 
   double calcPolygonArea(const Polygon &poly);
+
+  struct PointLess
+  {
+    bool operator()(const Point &a, const Point &b) const
+    {
+      return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+    }
+  };
+
 }
 
 #endif

@@ -351,6 +351,56 @@ namespace nehvedovich
     }
   };
 
+  struct SubPoint
+  {
+    explicit SubPoint(const Point &base):
+      base_(base)
+    {}
+    Point operator()(const Point &p) const
+    {
+      return Point {p.x - base_.x, p.y - base_.y};
+    }
+    Point base_;
+  };
+
+  struct NormalizePolygon
+  {
+    std::vector< Point > operator()(const Polygon &poly) const
+    {
+      if (poly.points.empty())
+      {
+        return std::vector< Point >();
+      }
+
+      std::vector< Point >::const_iterator minIt =
+          std::min_element(poly.points.begin(), poly.points.end(), PointLess());
+      std::vector< Point > rel(poly.points.size());
+      std::transform(poly.points.begin(), poly.points.end(), rel.begin(), SubPoint(*minIt));
+      std::sort(rel.begin(), rel.end(), PointLess());
+      return rel;
+    }
+  };
+
+  struct SameByTranslation
+  {
+    explicit SameByTranslation(const Polygon &ref):
+      refKey_(NormalizePolygon()(ref))
+    {}
+
+    bool operator()(const Polygon &other) const
+    {
+      if (refKey_.empty() || other.points.size() != refKey_.size())
+      {
+        return false;
+      }
+      const std::vector< Point > key = NormalizePolygon()(other);
+      return std::equal(refKey_.begin(), refKey_.end(), key.begin());
+    }
+
+  private:
+    std::vector< Point > refKey_;
+  };
+
 }
 
 #endif

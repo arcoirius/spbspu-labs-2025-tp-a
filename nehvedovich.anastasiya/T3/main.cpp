@@ -13,18 +13,18 @@ struct BindPolygons
 {
   typedef Fn FnType;
 
-  BindPolygons(FnType f, const std::vector< nehvedovich::Polygon >& polys)
-    : fn(f),
-      polygons(polys)
+  BindPolygons(FnType f, const std::vector< nehvedovich::Polygon > &polys):
+    fn(f),
+    polygons(polys)
   {}
 
-  void operator()(std::istream& in, std::ostream& out) const
+  void operator()(std::istream &in, std::ostream &out) const
   {
     fn(in, out, polygons);
   }
 
   FnType fn;
-  const std::vector< nehvedovich::Polygon >& polygons;
+  const std::vector< nehvedovich::Polygon > &polygons;
 };
 
 template < typename Fn >
@@ -32,20 +32,19 @@ struct BindPolygonsMut
 {
   typedef Fn FnType;
 
-  BindPolygonsMut(FnType f, std::vector< nehvedovich::Polygon >& polys)
-    : fn(f),
-      polygons(polys)
+  BindPolygonsMut(FnType f, std::vector< nehvedovich::Polygon > &polys):
+    fn(f),
+    polygons(polys)
   {}
 
-  void operator()(std::istream& in, std::ostream& out) const
+  void operator()(std::istream &in, std::ostream &out) const
   {
     fn(in, out, polygons);
   }
 
   FnType fn;
-  std::vector< nehvedovich::Polygon >& polygons;
+  std::vector< nehvedovich::Polygon > &polygons;
 };
-
 
 int main(int argc, char *argv[])
 {
