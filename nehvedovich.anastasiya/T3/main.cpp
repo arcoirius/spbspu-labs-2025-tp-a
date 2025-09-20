@@ -11,24 +11,6 @@
 template < typename Fn >
 struct BindPolygons
 {
-  using FnType = Fn;
-
-  BindPolygons(FnType f, const std::vector< nehvedovich::Polygon > &polys):` fn(f),
-    polygons(polys)
-  {}
-
-  void operator()(std::istream &in, std::ostream &out) const
-  {
-    fn(in, out, polygons);
-  }
-
-  FnType fn;
-  const std::vector< nehvedovich::Polygon > &polygons;
-};
-
-template < typename Fn >
-struct BindPolygons
-{
   typedef Fn FnType;
 
   BindPolygons(FnType f, const std::vector< nehvedovich::Polygon >& polys)
@@ -41,11 +23,9 @@ struct BindPolygons
     fn(in, out, polygons);
   }
 
-private:
   FnType fn;
   const std::vector< nehvedovich::Polygon >& polygons;
 };
-
 
 int main(int argc, char *argv[])
 {
