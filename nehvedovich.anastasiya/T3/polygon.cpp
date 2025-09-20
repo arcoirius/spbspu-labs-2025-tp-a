@@ -6,9 +6,67 @@
 
 namespace nehvedovich
 {
-  bool operator==(const Point &p1, const Point &p2)
+  struct PointLess
   {
-    return p1.x == p2.x && p1.y == p2.y;
+    bool operator()(const Point &a, const Point &b) const
+    {
+      return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+    }
+  };
+
+  std::istream &operator>>(std::istream &in, Point &pt)
+  {
+    std::istream::sentry s(in);
+    if (!s)
+    {
+      return in;
+    }
+
+    char lp = 0, sc = 0, rp = 0;
+    int x = 0, y = 0;
+
+    if (!(in >> lp) || lp != '(')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> x))
+    {
+      return in;
+    }
+    if (!(in >> sc) || sc != ';')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+    if (!(in >> y))
+    {
+      return in;
+    }
+    if (!(in >> rp) || rp != ')')
+    {
+      in.setstate(std::ios::failbit);
+      return in;
+    }
+
+    pt.x = x;
+    pt.y = y;
+    return in;
+  }
+
+  std::ostream &operator<<(std::ostream &out, const Point &src)
+  {
+    std::ostream::sentry s(out);
+    if (!s)
+    {
+      return out;
+    }
+    return out << '(' << src.x << ';' << src.y << ')';
+  }
+
+  bool operator==(const Point &a, const Point &b)
+  {
+    return a.x == b.x && a.y == b.y;
   }
 
   std::istream &operator>>(std::istream &in, Polygon &dest)
@@ -24,61 +82,10 @@ namespace nehvedovich
     {
       return in;
     }
-
     if (n < 3)
     {
       in.setstate(std::ios::failbit);
       return in;
-    }
-
-    std::istream &operator>>(std::istream &in, Point &pt)
-    {
-      std::istream::sentry s(in);
-      if (!s)
-      {
-        return in;
-      }
-
-      char lparen = 0, semi = 0, rparen = 0;
-      int x = 0, y = 0;
-
-      if (!(in >> lparen) || lparen != '(')
-      {
-        in.setstate(std::ios::failbit);
-        return in;
-      }
-      if (!(in >> x))
-      {
-        return in;
-      }
-      if (!(in >> semi) || semi != ';')
-      {
-        in.setstate(std::ios::failbit);
-        return in;
-      }
-      if (!(in >> y))
-      {
-        return in;
-      }
-      if (!(in >> rparen) || rparen != ')')
-      {
-        in.setstate(std::ios::failbit);
-        return in;
-      }
-
-      pt.x = x;
-      pt.y = y;
-      return in;
-    }
-
-    std::ostream &operator<<(std::ostream &out, const Point &src)
-    {
-      std::ostream::sentry sentry(out);
-      if (!sentry)
-      {
-        return out;
-      }
-      return out << '(' << src.x << ';' << src.y << ')';
     }
 
     std::vector< Point > pts;
@@ -110,14 +117,18 @@ namespace nehvedovich
     return in;
   }
 
-  std::ostream &operator<<(std::ostream &out, const Point &src)
+  std::ostream &operator<<(std::ostream &out, const Polygon &src)
   {
-    std::ostream::sentry sentry(out);
-    if (!sentry)
+    std::ostream::sentry s(out);
+    if (!s)
     {
       return out;
     }
-    return out << '(' << src.x << ';' << src.y << ')';
+
+    out << src.points.size() << ' ';
+    std::ostream_iterator< Point > oit(out, " ");
+    std::copy(src.points.begin(), src.points.end(), oit);
+    return out;
   }
 
   bool operator==(const Polygon &p1, const Polygon &p2)
@@ -130,22 +141,6 @@ namespace nehvedovich
     return !(p1 == p2);
   }
 
-  std::ostream &operator<<(std::ostream &out, const Polygon &src)
-  {
-    std::ostream::sentry sentry(out);
-    if (!sentry)
-    {
-      return out;
-    }
-
-    out << src.points.size() << ' ';
-    for (const Point &p : src.points)
-    {
-      out << p << ' ';
-    }
-    return out;
-  }
-
   struct PolygonAreaAccumulator
   {
     explicit PolygonAreaAccumulator(const Polygon &p):
@@ -155,9 +150,9 @@ namespace nehvedovich
 
     double operator()(double acc, const Point &p1) const
     {
-      std::size_t i = static_cast< std::size_t >(&p1 - &poly.points[0]);
+      const std::size_t i = static_cast< std::size_t >(&p1 - &poly.points[0]);
       const Point &p2 = poly.points[(i + 1) % n];
-      return acc + (p1.x * p2.y - p2.x * p1.y);
+      return acc + (static_cast< double >(p1.x) * p2.y - static_cast< double >(p2.x) * p1.y);
     }
 
     const Polygon &poly;
@@ -170,8 +165,7 @@ namespace nehvedovich
     {
       return 0.0;
     }
-    const double area =
-        std::accumulate(poly.points.begin(), poly.points.end(), 0.0, PolygonAreaAccumulator(poly)) / 2.0;
-    return std::abs(area);
+    const double dblArea = std::accumulate(poly.points.begin(), poly.points.end(), 0.0, PolygonAreaAccumulator(poly));
+    return std::abs(dblArea / 2.0);
   }
 }
