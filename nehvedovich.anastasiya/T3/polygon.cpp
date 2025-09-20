@@ -1,5 +1,6 @@
 #include "polygon.hpp"
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 #include <cmath>
 
@@ -10,35 +11,48 @@ namespace nehvedovich
     return p1.x == p2.x && p1.y == p2.y;
   }
 
-  std::istream &operator>>(std::istream &in, Polygon &dest)
+  std::istream& operator>>(std::istream& in, Polygon& dest)
+{
+  std::istream::sentry s(in);
+  if (!s)
   {
-    std::istream::sentry s(in);
-    if (!s)
-    {
-      return in;
-    }
+    return in;
+  }
 
-    std::size_t n = 0;
-    if (!(in >> n))
-    {
-      return in;
-    }
+  std::size_t n = 0;
+  if (!(in >> n))
+  {
+    return in;
+  }
 
-    if (n < 3)
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
+  if (n < 3)
+  {
+    in.setstate(std::ios::failbit);
+    return in;
+  }
 
-    std::vector< Point > pts;
-    pts.reserve(n);
-    std::istream_iterator< Point > it(in);
-    std::copy_n(it, n, std::back_inserter(pts));
+  std::vector< Point > pts;
+  pts.reserve(n);
 
-    if (in.fail())
-    {
-      return in;
-    }
+  std::istream_iterator< Point > it(in);
+  std::copy_n(it, n, std::back_inserter(pts));
+
+  if (in.fail())
+  {
+    return in;
+  }
+
+  std::vector< Point > tmp(pts);
+  std::sort(tmp.begin(), tmp.end(), PointLess());
+  if (std::adjacent_find(tmp.begin(), tmp.end(), std::equal_to< Point >()) != tmp.end())
+  {
+    in.setstate(std::ios::failbit);
+    return in;
+  }
+
+  dest.points.swap(pts);
+  return in;
+}
 
     std::vector< Point > tmp(pts);
     std::sort(tmp.begin(), tmp.end(), PointLess());
