@@ -60,106 +60,68 @@ namespace nehvedovich
     return in;
   }
 
-  std::vector< Point > tmp(pts);
-  std::sort(tmp.begin(), tmp.end(), PointLess());
-  if (std::adjacent_find(tmp.begin(), tmp.end(), std::equal_to< Point >()) != tmp.end())
+  std::ostream &operator<<(std::ostream &out, const Point &src)
   {
-    in.setstate(std::ios::failbit);
-    return in;
-  }
-
-  dest.points.swap(pts);
-  return in;
-}
-
-std::ostream &operator<<(std::ostream &out, const Point &src)
-{
-  std::ostream::sentry sentry(out);
-  if (!sentry)
-  {
-    return out;
-  }
-  return out << '(' << src.x << ';' << src.y << ')';
-}
-
-bool operator==(const Polygon &p1, const Polygon &p2)
-{
-  return p1.points == p2.points;
-}
-
-bool operator!=(const Polygon &p1, const Polygon &p2)
-{
-  return !(p1 == p2);
-}
-
-std::istream &operator>>(std::istream &in, Polygon &dest)
-{
-  std::istream::sentry sentry(in);
-  if (!sentry)
-  {
-    return in;
-  }
-
-  size_t vertexCount;
-  if (!(in >> vertexCount) || vertexCount < 3)
-  {
-    in.setstate(std::ios::failbit);
-    return in;
-  }
-
-  dest.points.resize(vertexCount);
-  for (Point &p : dest.points)
-  {
-    if (!(in >> p))
+    std::ostream::sentry sentry(out);
+    if (!sentry)
     {
-      in.setstate(std::ios::failbit);
-      return in;
+      return out;
     }
+    return out << '(' << src.x << ';' << src.y << ')';
   }
 
-  return in;
-}
-
-std::ostream &operator<<(std::ostream &out, const Polygon &src)
-{
-  std::ostream::sentry sentry(out);
-  if (!sentry)
+  bool operator==(const Polygon &p1, const Polygon &p2)
   {
+    return p1.points == p2.points;
+  }
+
+  bool operator!=(const Polygon &p1, const Polygon &p2)
+  {
+    return !(p1 == p2);
+  }
+
+  std::ostream &operator<<(std::ostream &out, const Polygon &src)
+  {
+    std::ostream::sentry sentry(out);
+    if (!sentry)
+    {
+      return out;
+    }
+
+    out << src.points.size() << ' ';
+    for (const Point &p : src.points)
+    {
+      out << p << ' ';
+    }
     return out;
   }
 
-  out << src.points.size() << ' ';
-  for (const Point &p : src.points)
+  struct PolygonAreaAccumulator
   {
-    out << p << ' ';
-  }
-  return out;
-}
+    explicit PolygonAreaAccumulator(const Polygon &p):
+      poly(p),
+      n(p.points.size())
+    {}
 
-struct PolygonAreaAccumulator
-{
-  PolygonAreaAccumulator(const Polygon &p):
-    poly(p),
-    n(p.points.size())
-  {}
+    double operator()(double acc, const Point &p1) const
+    {
+      std::size_t i = static_cast< std::size_t >(&p1 - &poly.points[0]);
+      const Point &p2 = poly.points[(i + 1) % n];
+      return acc + (p1.x * p2.y - p2.x * p1.y);
+    }
 
-  double operator()(double acc, const Point &p1) const
+    const Polygon &poly;
+    std::size_t n;
+  };
+
+  double calcPolygonArea(const Polygon &poly)
   {
-    size_t i = &p1 - &poly.points[0];
-    const nehvedovich::Point &p2 = poly.points[(i + 1) % n];
-    return acc + (p1.x * p2.y - p2.x * p1.y);
+    if (poly.points.size() < 3)
+    {
+      return 0.0;
+    }
+    const double area =
+        std::accumulate(poly.points.begin(), poly.points.end(), 0.0, PolygonAreaAccumulator(poly)) / 2.0;
+    return std::abs(area);
   }
-  const Polygon &poly;
-  size_t n;
-};
-
-double calcPolygonArea(const Polygon &poly)
-{
-  if (poly.points.size() < 3)
-  {
-    return 0.0;
-  }
-  double area = std::accumulate(poly.points.begin(), poly.points.end(), 0.0, PolygonAreaAccumulator(poly)) / 2.0;
-
-  return std::abs(area);
 }

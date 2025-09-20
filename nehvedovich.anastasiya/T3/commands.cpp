@@ -119,8 +119,17 @@ void nehvedovich::areaCommand(std::istream &in, std::ostream &out, const std::ve
     out << std::fixed << std::setprecision(1) << (total / polygons.size()) << '\n';
     return;
   }
-  const double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAreasIfParam(param));
 
+  if (param != "EVEN" && param != "ODD")
+  {
+    std::size_t num = std::stoul(param);
+    if (num < 3)
+    {
+      throw std::runtime_error("Invalid AREA arg (<3)");
+    }
+  }
+
+  const double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAreasIfParam(param));
   out << std::fixed << std::setprecision(1) << sum << '\n';
 }
 
@@ -189,6 +198,16 @@ void nehvedovich::countCommand(std::istream &in, std::ostream &out, const std::v
 {
   std::string param;
   in >> param;
+
+  if (param != "EVEN" && param != "ODD")
+  {
+    std::size_t num = std::stoul(param);
+    if (num < 3)
+    {
+      throw std::runtime_error("Invalid COUNT arg (<3)");
+    }
+  }
+
   std::size_t count = std::count_if(polygons.begin(), polygons.end(), CountByParam(param));
   out << count << '\n';
 }
