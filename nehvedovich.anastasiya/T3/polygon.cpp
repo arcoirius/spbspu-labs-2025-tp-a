@@ -31,6 +31,56 @@ namespace nehvedovich
       return in;
     }
 
+    std::istream &operator>>(std::istream &in, Point &pt)
+    {
+      std::istream::sentry s(in);
+      if (!s)
+      {
+        return in;
+      }
+
+      char lparen = 0, semi = 0, rparen = 0;
+      int x = 0, y = 0;
+
+      if (!(in >> lparen) || lparen != '(')
+      {
+        in.setstate(std::ios::failbit);
+        return in;
+      }
+      if (!(in >> x))
+      {
+        return in;
+      }
+      if (!(in >> semi) || semi != ';')
+      {
+        in.setstate(std::ios::failbit);
+        return in;
+      }
+      if (!(in >> y))
+      {
+        return in;
+      }
+      if (!(in >> rparen) || rparen != ')')
+      {
+        in.setstate(std::ios::failbit);
+        return in;
+      }
+
+      pt.x = x;
+      pt.y = y;
+      return in;
+    }
+
+    std::ostream &operator<<(std::ostream &out, const Point &src)
+    {
+      std::ostream::sentry sentry(out);
+      if (!sentry)
+      {
+        return out;
+      }
+      return out << '(' << src.x << ';' << src.y << ')';
+    }
+
     std::vector< Point > pts;
     pts.reserve(n);
     std::istream_iterator< Point > it(in);
