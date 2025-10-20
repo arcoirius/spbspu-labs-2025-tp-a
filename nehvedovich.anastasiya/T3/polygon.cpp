@@ -1,185 +1,127 @@
 #include "polygon.hpp"
+#include <functional>
 #include <algorithm>
 #include <iterator>
 #include <numeric>
-#include <cmath>
-#include <sstream>
+#include "wrappers_io.hpp"
 
-namespace nehvedovich
+std::istream& nehvedovich::operator>>(std::istream& in, Point& point)
 {
-
-  std::istream &operator>>(std::istream &in, Polygon &dest)
+  std::istream::sentry sentry(in);
+  if (!sentry)
   {
-    std::istream::sentry s(in);
-    if (!s)
-    {
-      return in;
-    }
-
-    std::size_t n = 0;
-    if (!(in >> n))
-    {
-      return in;
-    }
-    if (n < 3)
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    char c = static_cast< char >(in.peek());
-    if (c == '\n')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    std::string line;
-    std::getline(in, line);
-    std::istringstream ls(line);
-
-    std::vector< Point > pts;
-    pts.reserve(n);
-    std::istream_iterator< Point > it(ls);
-    std::copy_n(it, n, std::back_inserter(pts));
-
-    if (ls.fail())
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    std::string tail;
-    std::getline(ls, tail);
-    if (tail.find_first_not_of(" \t\r") != std::string::npos)
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    std::vector< Point > tmp(pts);
-    std::sort(tmp.begin(), tmp.end(), PointLess());
-    struct PointEq
-    {
-      bool operator()(const Point &a, const Point &b) const
-      {
-        return a.x == b.x && a.y == b.y;
-      }
-    };
-    if (std::adjacent_find(tmp.begin(), tmp.end(), PointEq()) != tmp.end())
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    dest.points.swap(pts);
     return in;
   }
 
-  std::ostream &operator<<(std::ostream &out, const Point &src)
+  Point temp{ 0, 0 };
+  in >> DelimiterIO{ '(' } >> temp.x >> DelimiterIO{ ';' } >> temp.y >> DelimiterIO{ ')' };
+
+  if (in)
   {
-    std::ostream::sentry s(out);
-    if (!s)
-    {
-      return out;
-    }
-    return out << '(' << src.x << ';' << src.y << ')';
+    point = temp;
   }
+  return in;
+}
 
-  bool operator==(const Point &a, const Point &b)
+std::istream& nehvedovich::operator>>(std::istream& in, Polygon& polygon)
+{
+  std::istream::sentry sentry(in);
+  if (!sentry)
   {
-    return a.x == b.x && a.y == b.y;
-  }
-
-  std::istream &operator>>(std::istream &in, Point &pt)
-  {
-    std::istream::sentry s(in);
-    if (!s)
-    {
-      return in;
-    }
-
-    char lp = 0, sc = 0, rp = 0;
-    int x = 0, y = 0;
-
-    if (!(in >> lp) || lp != '(')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> x))
-    {
-      return in;
-    }
-    if (!(in >> sc) || sc != ';')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-    if (!(in >> y))
-    {
-      return in;
-    }
-    if (!(in >> rp) || rp != ')')
-    {
-      in.setstate(std::ios::failbit);
-      return in;
-    }
-
-    pt.x = x;
-    pt.y = y;
     return in;
   }
 
-  std::ostream &operator<<(std::ostream &out, const Polygon &src)
+  size_t count;
+  in >> count;
+  if (count < 3)
   {
-    std::ostream::sentry s(out);
-    if (!s)
-    {
-      return out;
-    }
-
-    out << src.points.size() << ' ';
-    std::ostream_iterator< Point > oit(out, " ");
-    std::copy(src.points.begin(), src.points.end(), oit);
-    return out;
+    in.setstate(std::ios::failbit);
+    return in;
   }
 
-  bool operator==(const Polygon &p1, const Polygon &p2)
+  std::vector< Point > temp;
+  using input_it_t = std::istream_iterator< Point >;
+  std::copy_n(input_it_t{ in }, count, std::back_inserter(temp));
+
+  if (in)
   {
-    return p1.points == p2.points;
+    polygon.points = temp;
   }
 
-  bool operator!=(const Polygon &p1, const Polygon &p2)
-  {
-    return !(p1 == p2);
-  }
+  return in;
+}
 
-  struct PolygonAreaAccumulator
-  {
-    explicit PolygonAreaAccumulator(const Polygon &p):
-      poly(p),
-      n(p.points.size())
-    {}
+bool nehvedovich::operator==(const Point& a, const Point& b)
+{
+  return a.x == b.x && a.y == b.y;
+}
 
-    double operator()(double acc, const Point &p1) const
-    {
-      const std::size_t i = static_cast< std::size_t >(&p1 - &poly.points[0]);
-      const Point &p2 = poly.points[(i + 1) % n];
-      return acc + (static_cast< double >(p1.x) * p2.y - static_cast< double >(p2.x) * p1.y);
-    }
+bool nehvedovich::operator==(const Polygon& p1, const Polygon& p2)
+{
+  return p1.points == p2.points;
+}
 
-    const Polygon &poly;
-    std::size_t n;
-  };
+bool nehvedovich::operator!=(const Polygon& p1, const Polygon& p2)
+{
+  return !(p1 == p2);
+}
 
-  double calcPolygonArea(const Polygon &poly)
-  {
-    if (poly.points.size() < 3)
-    {
-      return 0.0;
-    }
-    const double dblArea = std::accumulate(poly.points.begin(), poly.points.end(), 0.0, PolygonAreaAccumulator(poly));
-    return std::abs(dblArea / 2.0);
-  }
+bool nehvedovich::isEven(const Polygon& p)
+{
+  return p.points.size() % 2 == 0;
+}
+
+bool nehvedovich::isOdd(const Polygon& p)
+{
+  return p.points.size() % 2 == 1;
+}
+
+bool nehvedovich::hasVertexCount(const Polygon& p, size_t count)
+{
+  return p.points.size() == count;
+}
+
+bool nehvedovich::compareByVertices(const nehvedovich::Polygon& p1, const nehvedovich::Polygon& p2)
+{
+  return p1.points.size() < p2.points.size();
+}
+
+bool nehvedovich::compareByArea(const Polygon& p1, const Polygon& p2)
+{
+  return getArea(p1) < getArea(p2);
+}
+
+bool nehvedovich::comparePointByX(const Point& a, const Point& b)
+{
+  return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+}
+
+bool nehvedovich::comparePointByY(const Point& a, const Point& b)
+{
+  return (a.y < b.y) || (a.y == b.y && a.x < b.x);
+}
+
+double nehvedovich::getDistance(const Point& point1, const Point& point2)
+{
+  return (std::sqrt((point1.x - point2.x) * (point1.x - point2.x) + (point1.y - point2.y) * (point1.y - point2.y)));
+}
+
+double nehvedovich::getTriangleArea(const Point& point1, const Point& point2, const Point& point3)
+{
+  double a = getDistance(point1, point2);
+  double b = getDistance(point2, point3);
+  double c = getDistance(point1, point3);
+  double p = (a + b + c) / 2.0;
+  return (std::sqrt(p * (p - a) * (p - b) * (p - c)));
+}
+
+double nehvedovich::getArea(const Polygon& polygon)
+{
+  std::vector< double > areas(polygon.points.size() - 2);
+  const auto& begin = polygon.points.cbegin();
+  const auto& end = polygon.points.cend();
+  using namespace std::placeholders;
+  auto triangleAreaCalc = std::bind(getTriangleArea, polygon.points[0], _1, _2);
+  std::transform(begin + 1, end - 1, begin + 2, std::back_inserter(areas), triangleAreaCalc);
+  return std::accumulate(areas.begin(), areas.end(), 0.0);
 }
