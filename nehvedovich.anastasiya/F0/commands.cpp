@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "support.hpp"
 
-void nehvedovich::createDict(std::istream &in, DictionarySet &dicts)
+void nehvedovich::createDict(std::istream& in, DictionarySet& dicts)
 {
   std::string name;
   in >> name;
@@ -15,7 +15,7 @@ void nehvedovich::createDict(std::istream &in, DictionarySet &dicts)
   dicts[name] = Dictionary{};
 }
 
-void nehvedovich::deleteDict(std::istream &in, DictionarySet &dicts)
+void nehvedovich::deleteDict(std::istream& in, DictionarySet& dicts)
 {
   std::string name;
   in >> name;
@@ -33,7 +33,7 @@ void nehvedovich::deleteDict(std::istream &in, DictionarySet &dicts)
   dicts.erase(it);
 }
 
-void nehvedovich::add(std::istream &in, DictionarySet &dicts)
+void nehvedovich::add(std::istream& in, DictionarySet& dicts)
 {
   std::string dictName, english, russian;
   in >> dictName >> english >> russian;
@@ -48,18 +48,18 @@ void nehvedovich::add(std::istream &in, DictionarySet &dicts)
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  Dictionary &dict = dictIt->second;
-  auto &translations = dict[english];
+  Dictionary& dict = dictIt->second;
+  auto& translations = dict[english];
 
   if (std::find(translations.begin(), translations.end(), russian) != translations.end())
   {
     throw std::runtime_error("<INVALID INPUT>");
   }
 
-  addSortedTranslation(translations, russian);
+  AddTranslation{ translations }(russian);
 }
 
-void nehvedovich::remove(std::istream &in, DictionarySet &dicts)
+void nehvedovich::remove(std::istream& in, DictionarySet& dicts)
 {
   std::string dictName, english;
   in >> dictName >> english;
@@ -74,7 +74,7 @@ void nehvedovich::remove(std::istream &in, DictionarySet &dicts)
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  Dictionary &dict = dictIt->second;
+  Dictionary& dict = dictIt->second;
   auto wordIt = dict.find(english);
   if (wordIt == dict.end())
   {
@@ -84,7 +84,7 @@ void nehvedovich::remove(std::istream &in, DictionarySet &dicts)
   dict.erase(wordIt);
 }
 
-void nehvedovich::translate(std::istream &in, const DictionarySet &dicts, std::ostream &out)
+void nehvedovich::translate(std::istream& in, const DictionarySet& dicts, std::ostream& out)
 {
   std::string dictName, english;
   in >> dictName >> english;
@@ -100,7 +100,7 @@ void nehvedovich::translate(std::istream &in, const DictionarySet &dicts, std::o
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict = dictIt->second;
+  const Dictionary& dict = dictIt->second;
   auto wordIt = dict.find(english);
   if (wordIt == dict.end())
   {
@@ -110,7 +110,7 @@ void nehvedovich::translate(std::istream &in, const DictionarySet &dicts, std::o
   out << formatTranslations(wordIt->second) << "\n";
 }
 
-void nehvedovich::contains(std::istream &in, const DictionarySet &dicts, std::ostream &out)
+void nehvedovich::contains(std::istream& in, const DictionarySet& dicts, std::ostream& out)
 {
   std::string dictName, english;
   in >> dictName >> english;
@@ -126,11 +126,11 @@ void nehvedovich::contains(std::istream &in, const DictionarySet &dicts, std::os
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict = dictIt->second;
+  const Dictionary& dict = dictIt->second;
   out << (dict.find(english) != dict.end() ? "<YES>\n" : "<NO>\n");
 }
 
-void nehvedovich::list(std::istream &in, const DictionarySet &dicts, std::ostream &out)
+void nehvedovich::list(std::istream& in, const DictionarySet& dicts, std::ostream& out)
 {
   std::string name;
   in >> name;
@@ -146,19 +146,18 @@ void nehvedovich::list(std::istream &in, const DictionarySet &dicts, std::ostrea
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict = it->second;
+  const Dictionary& dict = it->second;
   if (dict.empty())
   {
     throw std::runtime_error("<EMPTY DICTIONARY>");
   }
 
   std::vector< std::pair< std::string, std::vector< std::string > > > words(dict.begin(), dict.end());
-  std::sort(words.begin(), words.end(), WordComparator());
-
+  std::sort(words.begin(), words.end(), wordComparator);
   std::transform(words.begin(), words.end(), std::ostream_iterator< std::string >(out, "\n"), WordFormatter(WordFormatter::PrintMode));
 }
 
-void nehvedovich::merge(std::istream &in, DictionarySet &dicts)
+void nehvedovich::merge(std::istream& in, DictionarySet& dicts)
 {
   std::string name1, name2, resultName;
   in >> name1 >> name2 >> resultName;
@@ -171,8 +170,8 @@ void nehvedovich::merge(std::istream &in, DictionarySet &dicts)
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict1 = it1->second;
-  const Dictionary &dict2 = it2->second;
+  const Dictionary& dict1 = it1->second;
+  const Dictionary& dict2 = it2->second;
 
   if (dict1.empty() || dict2.empty())
   {
@@ -181,11 +180,11 @@ void nehvedovich::merge(std::istream &in, DictionarySet &dicts)
 
   Dictionary result = dict1;
   std::vector< std::pair< std::string, std::vector< std::string > > > tmp(dict2.begin(), dict2.end());
-  std::transform(tmp.begin(), tmp.end(), tmp.begin(), MergeDictionaries{result});
+  std::transform(tmp.begin(), tmp.end(), tmp.begin(), MergeDictionaries{ result });
   dicts[resultName] = std::move(result);
 }
 
-void nehvedovich::quantity(std::istream &in, const DictionarySet &dicts, std::ostream &out)
+void nehvedovich::quantity(std::istream& in, const DictionarySet& dicts, std::ostream& out)
 {
   std::string name;
   in >> name;
@@ -196,7 +195,7 @@ void nehvedovich::quantity(std::istream &in, const DictionarySet &dicts, std::os
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict = it->second;
+  const Dictionary& dict = it->second;
   if (dict.empty())
   {
     throw std::runtime_error("<EMPTY DICTIONARY>");
@@ -205,7 +204,7 @@ void nehvedovich::quantity(std::istream &in, const DictionarySet &dicts, std::os
   out << dict.size() << "\n";
 }
 
-void nehvedovich::reverseTranslate(std::istream &in, const DictionarySet &dicts, std::ostream &out)
+void nehvedovich::reverseTranslate(std::istream& in, const DictionarySet& dicts, std::ostream& out)
 {
   std::string name, russian;
   in >> name >> russian;
@@ -216,15 +215,14 @@ void nehvedovich::reverseTranslate(std::istream &in, const DictionarySet &dicts,
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict = it->second;
+  const Dictionary& dict = it->second;
   if (dict.empty())
   {
     throw std::runtime_error("<EMPTY DICTIONARY>");
   }
 
   std::vector< std::pair< std::string, std::vector< std::string > > > filtered;
-  std::copy_if(dict.begin(), dict.end(), std::back_inserter(filtered),
-               TranslationFilter(TranslationFilter::ContainsMode, 0, russian));
+  std::copy_if(dict.begin(), dict.end(), std::back_inserter(filtered), TranslationFilter(TranslationFilter::ContainsMode, 0, russian));
 
   if (filtered.empty())
   {
@@ -237,10 +235,10 @@ void nehvedovich::reverseTranslate(std::istream &in, const DictionarySet &dicts,
   std::transform(filtered.begin(), filtered.end(), std::back_inserter(englishWords), WordFormatter(WordFormatter::ExtractMode));
   std::sort(englishWords.begin(), englishWords.end());
 
-  out << Join()(englishWords, ", ") << "\n";
+  out << Join(", ")(englishWords) << "\n";
 }
 
-void nehvedovich::edit(std::istream &in, DictionarySet &dicts)
+void nehvedovich::edit(std::istream& in, DictionarySet& dicts)
 {
   std::string dictName, word, oldTranslation, newTranslation;
   in >> dictName >> word >> oldTranslation >> newTranslation;
@@ -256,14 +254,14 @@ void nehvedovich::edit(std::istream &in, DictionarySet &dicts)
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  Dictionary &dict = dictIt->second;
+  Dictionary& dict = dictIt->second;
   auto wordIt = dict.find(word);
   if (wordIt == dict.end())
   {
     throw std::runtime_error("<WORD NOT FOUND>");
   }
 
-  std::vector< std::string > &translations = wordIt->second;
+  std::vector< std::string >& translations = wordIt->second;
   auto oldIt = std::find(translations.begin(), translations.end(), oldTranslation);
   if (oldIt == translations.end())
   {
@@ -275,7 +273,7 @@ void nehvedovich::edit(std::istream &in, DictionarySet &dicts)
   translations.erase(std::unique(translations.begin(), translations.end()), translations.end());
 }
 
-void nehvedovich::moreTranslations(std::istream &in, const DictionarySet &dicts, std::ostream &out)
+void nehvedovich::moreTranslations(std::istream& in, const DictionarySet& dicts, std::ostream& out)
 {
   std::string name;
   size_t count;
@@ -287,21 +285,19 @@ void nehvedovich::moreTranslations(std::istream &in, const DictionarySet &dicts,
     throw std::runtime_error("<DICT NOT FOUND>");
   }
 
-  const Dictionary &dict = it->second;
+  const Dictionary& dict = it->second;
   if (dict.empty())
   {
     throw std::runtime_error("<EMPTY DICTIONARY>");
   }
 
   std::vector< std::pair< std::string, std::vector< std::string > > > filtered;
-  std::copy_if(dict.begin(), dict.end(), std::back_inserter(filtered),
-               TranslationFilter(TranslationFilter::MoreThanMode, count));
+  std::copy_if(dict.begin(), dict.end(), std::back_inserter(filtered), TranslationFilter(TranslationFilter::MoreThanMode, count));
 
   if (filtered.empty())
   {
     throw std::runtime_error("<NO WORDS FOUND>");
   }
 
-  std::transform(filtered.begin(), filtered.end(), std::ostream_iterator< std::string >(out, "\n"),
-                 WordFormatter(WordFormatter::PrintMode));
+  std::transform(filtered.begin(), filtered.end(), std::ostream_iterator< std::string >(out, "\n"), WordFormatter(WordFormatter::PrintMode));
 }

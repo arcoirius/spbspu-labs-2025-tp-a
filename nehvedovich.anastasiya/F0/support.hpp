@@ -14,17 +14,11 @@ namespace nehvedovich
   bool isLetter(char c);
   char toLower(char c);
   bool isValidChar(unsigned char c);
-  bool isValidName(const std::string &name);
+  bool isValidName(const std::string& name);
 
-  void addSortedTranslation(std::vector< std::string > &translations, const std::string &translation);
-
-  struct WordComparator
-  {
-    bool operator()(const std::pair< std::string, std::vector< std::string > > &a,
-                    const std::pair< std::string, std::vector< std::string > > &b) const;
-  };
-
-  std::string formatTranslations(const std::vector< std::string > &translations);
+  bool wordComparator(const std::pair<std::string, std::vector<std::string>>& a,
+    const std::pair<std::string, std::vector<std::string>>& b);
+  std::string formatTranslations(const std::vector< std::string >& translations);
 
   struct WordFormatter
   {
@@ -37,12 +31,18 @@ namespace nehvedovich
     Mode mode;
 
     explicit WordFormatter(Mode m);
-    std::string operator()(const std::pair< std::string, std::vector< std::string > > &entry) const;
+    std::string operator()(const std::pair< std::string, std::vector< std::string > >& entry) const;
   };
 
   struct Join
   {
-    std::string operator()(const std::vector< std::string > &v, const std::string &sep = ", ") const;
+    std::string sep;
+
+    explicit Join(const std::string& s = ", ");
+
+    std::string operator()(const std::vector<std::string>& v) const;
+    std::string operator()(const std::string& a, const std::string& b) const;
+    std::string joinPair(const std::string& a, const std::string& b) const;
   };
 
   struct TranslationFilter
@@ -58,21 +58,21 @@ namespace nehvedovich
     std::string target;
 
     TranslationFilter(Mode m, size_t c, std::string t = "");
-    bool operator()(const std::pair< std::string, std::vector< std::string > > &entry) const;
+    bool operator()(const std::pair< std::string, std::vector< std::string > >& entry) const;
   };
 
   struct AddTranslation
   {
-    std::vector< std::string > &translations;
-    const std::string &operator()(const std::string &tr) const;
+    std::vector< std::string >& translations;
+    const std::string& operator()(const std::string& tr) const;
   };
 
   struct MergeDictionaries
   {
-    Dictionary &result;
+    Dictionary& result;
     std::pair< std::string, std::vector< std::string > > operator()(
-      const std::pair< std::string, std::vector< std::string > > &entry) const;
+      const std::pair< std::string, std::vector< std::string > >& entry) const;
   };
-} // namespace nehvedovich
+}
 
 #endif
